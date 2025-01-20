@@ -1,0 +1,7 @@
+openai
+phidata
+langchain-community
+scikit-learn
+sentence-transformers
+PyPDF2
+pypdf
