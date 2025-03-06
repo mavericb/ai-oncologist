@@ -88,7 +88,7 @@ def test_openai_compatible():
     try:
         client = OpenAI(
             api_key=API_KEY,
-            base_url=BASE_URL,
+            base_url=f"{BASE_URL}/api/v1/",
         )
 
         response = client.chat.completions.create(
