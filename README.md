@@ -20,7 +20,7 @@ The system consists of three main agents:
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/ai-oncologist.git
+git clone https://github.com/mavericb/ai-oncologist.git
 cd ai-oncologist
 ```
 
@@ -33,20 +33,26 @@ pip install -r requirements.txt
 ```env
 # OpenAI-Like API configuration
 BASE_URL="https://api.deepseek.com"
-OPENAI_API_KEY=your_api_key
+OPENAI_API_KEY=your_deepseek_api_key
 MODEL="deepseek-chat"
+
+ANURA_BASE_URL=https://anura-testnet.lilypad.tech
+ANURA_API_KEY=your_anura_api_key
+ANURA_MODEL=phi4:14b
 
 # Search configuration
 MAX_RESULTS=3
 SIMILARITY_THRESHOLD=0.3
 ```
 
-- `BASE_URL`: API endpoint for the LLM service (default: "https://api.deepseek.com")
-- `OPENAI_API_KEY`: Your API key for authentication
-- `MODEL`: The model to use (default: "deepseek-chat")
+- `BASE_URL`: API endpoint for OpenAI Compatible LLM service (default: "https://api.deepseek.com")
+- `OPENAI_API_KEY`: Your OpenAI Compatible API key (for example: [DeepSeek API Docs](https://api-docs.deepseek.com/api/deepseek-api))
+- `MODEL`: One OpenAI Compatible model to use (default: "deepseek-chat")
+- `ANURA_BASE_URL`: API endpoint for the Anura LLM service (default: "https://anura-testnet.lilypad.tech")
+- `ANURA_API_KEY`: Your Anura API key (get it here: [Lilypad Inference API Docs](https://docs.lilypad.tech/lilypad/developer-resources/inference-api))
+- `ANURA_MODEL`: The Anura model to use (default: "phi4:14b")
 - `MAX_RESULTS`: Maximum number of papers to return (default: 3)
 - `SIMILARITY_THRESHOLD`: Minimum similarity score for document selection (default: 0.3)
-
 
 ## Project Structure
 
@@ -70,7 +76,6 @@ ai-oncologist/
 python AIOncologist.py
 ```
 
-
 ## Agent Details
 
 ### Paper Relevance Agent
@@ -89,6 +94,3 @@ python AIOncologist.py
 - Analyzes provided text passages
 - Generates focused answers to specific queries
 - Uses contextual understanding to provide accurate responses
-
-
-

@@ -1,6 +1,8 @@
 import os
 import logging
 from typing import Dict
+
+import requests
 from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.embeddings import HuggingFaceEmbeddings
@@ -63,10 +65,10 @@ def relevant_documents(query: str, return_scores: bool = False) -> str:
             logger.error(f"Error loading PDFs: {str(e)}")
             return {}
 
-    def verify_relevance(text: str, query: str) -> bool:
+    def verify_relevance_openai_compatible(text: str, query: str) -> bool:
         """Verify document relevance using AI verification."""
         try:
-            # TODO Update with lilypad endpoint
+            # TODO: Update api_key, base_url and model with Anura endpoint when OpenAI compatible
             client = OpenAI(
                 api_key=os.getenv("OPENAI_API_KEY"),
                 base_url="https://api.deepseek.com"
@@ -84,6 +86,68 @@ def relevant_documents(query: str, return_scores: bool = False) -> str:
 
             return response.choices[0].message.content.strip().lower() == 'yes'
         except Exception as e:
+            logger.error(f"Error during relevance verification: {str(e)}")
+            return False
+
+
+    def verify_relevance(text: str, query: str) -> bool:
+        """Verify document relevance using AI verification."""
+        ANURA_API_KEY = os.getenv("ANURA_API_KEY")
+        ANURA_BASE_URL = os.getenv("ANURA_BASE_URL")
+        ANURA_MODEL = os.getenv("ANURA_MODEL")
+
+        # Headers for API calls (match curl exactly)
+        HEADERS = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {ANURA_API_KEY}",
+            "Accept": "text/event-stream"
+        }
+
+        url = f"{ANURA_BASE_URL}/api/v1/chat/completions"
+        payload = {
+            "model": ANURA_MODEL,
+            "messages": [
+                {"role": "system",
+                 "content": "You are a document relevance analyzer. Respond only with 'yes' or 'no'."},
+                {"role": "user", "content": f"Is this document relevant to: '{query}'?\n\nDocument: {text[:1000]}..."}
+            ],
+            "stream": False,
+            "options": {"temperature": 1.0}
+        }
+
+        try:
+            response = requests.post(url, json=payload, headers=HEADERS, stream=True, timeout=120)
+            response.raise_for_status()
+
+            full_content = ""
+            for line in response.iter_lines(chunk_size=1):
+                if line:
+                    decoded_line = line.decode('utf-8').strip()
+                    logger.info(decoded_line)  # Print each line live like curl
+                    if decoded_line.startswith("data: "):
+                        chunk = decoded_line[6:]
+                        if chunk == "[DONE]":
+                            break
+                        try:
+                            if chunk.startswith("{"):
+                                data = json.loads(chunk)
+                                if "message" in data and "content" in data["message"]:
+                                    full_content += data["message"]["content"]
+                            else:
+                                for sub_chunk in chunk.split('}{'):
+                                    if not sub_chunk.startswith('{'):
+                                        sub_chunk = '{' + sub_chunk
+                                    if not sub_chunk.endswith('}'):
+                                        sub_chunk += '}'
+                                    data = json.loads(sub_chunk)
+                                    if "message" in data and "content" in data["message"]:
+                                        full_content += data["message"]["content"]
+                        except json.JSONDecodeError:
+                            logger.warning(f"Failed to parse chunk: {chunk}")
+
+            cleaned_content = full_content.strip().lower().rstrip('.')
+            return cleaned_content == 'yes'
+        except requests.RequestException as e:
             logger.error(f"Error during relevance verification: {str(e)}")
             return False
 
